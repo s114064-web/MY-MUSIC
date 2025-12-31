@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-Pop Finder + Lyrics</title>
+    <style>
+        :root {
+            --kpop-pink: #ff007a;
+            --kpop-purple: #7000ff;
+            --dark-bg: #050505;
+            --card-bg: #121212;
+            --text-main: #ffffff;
+            --text-dim: #a0a0a0;
+        }
+
+        body {
+            font-family: 'Inter', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            background: radial-gradient(circle at top right, #1a0b2e, #050505);
+            padding: 20px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 650px;
+        }
+
+        .main-card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 25px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+            border: 1px solid #222;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+            background: linear-gradient(to right, var(--kpop-pink), var(--kpop-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+        }
+
+        .form-group {
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(45deg, var(--kpop-pink), var(--kpop-purple));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover { transform: scale(1.02); opacity: 0.9; }
+
+        #player-area {
+            margin-top: 25px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            border-radius: 16px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+        }
+
+        /* 歌詞區域樣式 */
+        .lyrics-container {
+            background: #000;
+            border-radius: 16px;
+            padding: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+            text-align: left;
+            border: 1px solid #333;
+            line-height: 1.8;
+            font-size: 0.95rem;
+        }
+
+        .lyrics-title {
+            color: var(--kpop-pink);
+            font-weight: bold;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #222;
+            padding-bottom: 5px;
+        }
+
+        .lyrics-content {
+            white-space: pre-wrap;
+            color: #ddd;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <div class="main-card">
+            <h1>K-POP FINDER + LYRICS</h1>
+            
+            <div class="form-group">
+                <select id="groupSelect">
+                    <option value="BLACKPINK">BLACKPINK</option>
+                    <option value="STRAYKIDS">Stray Kids</option>
+                    <option value="BABYMONSTER">BABYMONSTER</option>
+                    <option value="BOYNEXTDOOR">BOYNEXTDOOR</option>
+                    <option value="MEOVV">MEOVV</option>
+                    <option value="ITZY">ITZY</option>
+                    <option value="TXT">TXT</option>
+                    <option value="TWS">TWS</option>
+                </select>
+            </div>
+
+            <button onclick="shuffleAndLyrics()">隨機播放並查看歌詞</button>
+
+            <div id="player-area">
+                <div class="video-wrapper">
+                    <div id="yt-player"></div>
+                </div>
+                
+                <div class="lyrics-container">
+                    <div class="lyrics-title" id="song-title">歌曲標題</div>
+                    <div class="lyrics-content" id="lyrics-text">歌詞載入中...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 歌曲資料與歌詞庫
+        const musicDatabase = {
+            'BLACKPINK': [
+                {
+                    id: 'gInV39f_H0w',
+                    title: 'Pink Venom',
+                    lyrics: "[Intro]\nKick in the door, waving the coco\n[Verse 1]\n這首歌像粉紅色的毒液\nStraight to your dome like whoa whoa whoa\nStraight to your dome like ah ah ah..."
+                },
+                {
+                    id: 'dNCWe_6HAM8',
+                    title: 'How You Like That',
+                    lyrics: "Look at you, now look at me\n你現在感覺如何？\nHow you like that, that, that, that..."
+                }
+            ],
+            'STRAYKIDS': [
+                {
+                    id: 'jYSlpC6Ud2A',
+                    title: 'Chk Chk Boom',
+                    lyrics: "[Chorus]\nChk chk boom, my aim is true\n走在自己的路上，不需要理由\nChk chk boom!"
+                }
+            ],
+            'BABYMONSTER': [
+                {
+                    id: 'mH0_XpSHkZo',
+                    title: 'SHEESH',
+                    lyrics: "Got them all going SHEESH\nBABY I'M A MONSTER\n看著我們的進化，讓世界驚嘆"
+                }
+            ],
+            'MEOVV': [
+                {
+                    id: 'm69S7S_7E60',
+                    title: 'MEOW',
+                    lyrics: "We walking like a MEOVV\n銳利的目光，優雅的步伐\n這是我們的時代..."
+                }
+            ],
+            'TWS': [
+                {
+                    id: 'hVpUv2S88_k',
+                    title: 'Plot Twist (첫 만남은 계획대로 되지 않아)',
+                    lyrics: "初次見面並不像計劃中那樣\n心跳加速的感覺，這種尷尬的悸動\nHello Hello..."
+                }
+            ],
+            'BOYNEXTDOOR': [
+                {
+                    id: 'N0j-8XmP_H0',
+                    title: 'One and Only',
+                    lyrics: "I'm the one and only\n在你門前徘徊，想要讓你注意到我\n這是屬於我們的清新旋律"
+                }
+            ],
+            'ITZY': [
+                {
+                    id: 'p9vO9yRlsS0',
+                    title: 'WANNABE',
+                    lyrics: "I don't wanna be somebody\nJust wanna be me, be me\n我就是我，這就是我的風格"
+                }
+            ],
+            'TXT': [
+                {
+                    id: 'd5bbqKYu51w',
+                    title: 'Deja Vu',
+                    lyrics: "在那熟悉的未來再次見到你\n這不是偶然，是注定的 Deja Vu\n像廢墟中的花朵綻放..."
+                }
+            ]
+        };
+
+        let player;
+        let apiLoaded = false;
+
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        document.head.appendChild(tag);
+
+        function onYouTubeIframeAPIReady() { apiLoaded = true; }
+
+        function shuffleAndLyrics() {
+            if (!apiLoaded) return;
+
+            const group = document.getElementById('groupSelect').value;
+            const songs = musicDatabase[group] || musicDatabase['BLACKPINK'];
+            const song = songs[Math.floor(Math.random() * songs.length)];
+
+            // 更新介面
+            document.getElementById('player-area').style.display = 'block';
+            document.getElementById('song-title').innerText = `${group} - ${song.title}`;
+            document.getElementById('lyrics-text').innerText = song.lyrics;
+
+            if (player) {
+                player.loadVideoById(song.id);
+            } else {
+                player = new YT.Player('yt-player', {
+                    height: '100%', width: '100%', videoId: song.id,
+                    playerVars: { 'autoplay': 1, 'modestbranding': 1 }
+                });
+            }
+            
+            // 每次切換自動捲回歌詞頂部
+            document.querySelector('.lyrics-container').scrollTop = 0;
+        }
+    </script>
+</body>
+</html>
